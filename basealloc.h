@@ -2,6 +2,9 @@
 
 #include <stdint.h>
 
+#if !defined NULL
+#define NULL ((void*)0)
+#endif
 
 // namespace for ability to provide a few versions of allocator
 // in one project (or library)

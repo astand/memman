@@ -24,9 +24,9 @@ static volatile uint32_t pool_start_address = (uint32_t)& memory_alloc_area;
 static volatile struct
 {
   blocknum_t cells[kBlocksCount];
-  uint32_t head = (kBlocksCount - 1);
-  uint32_t tail = 0;
-  int32_t size = -1;
+  uint32_t head;
+  uint32_t tail;
+  int32_t size;
 } freefifo;
 
 // array for marking busy / not busy
@@ -53,28 +53,34 @@ static inline void put_head(blocknum_t num)
 }
 
 // if returns 0 the block_num_out has valid value
-static volatile int32_t pick_next_free_block(blocknum_t& block_num_out)
+static int32_t pick_next_free_block(blocknum_t& block_num_out)
 {
   int32_t ret = 0;
+  static bool mem_init = false;
 
-  if (freefifo.size > 0 && freefifo.size <= kBlocksCount)
-  {
-    // this cast is unsafe only for uint32_t type when blocks
-    block_num_out = (read_tail());
-    return 0;
-  }
-  else if (freefifo.size == -1)
+  if (mem_init == false)
   {
     resetmem();
+    mem_init = true;
+    block_num_out = read_tail();
+  }
+  else if (freefifo.size > 0 && freefifo.size <= kBlocksCount)
+  {
+    // this cast is unsafe only for uint32_t type when blocks
+    block_num_out = read_tail();
+  }
+  else
+  {
+    ret = -1;
   }
 
-  return -1;
+  return ret;
 }
 
 void* getmem()
 {
   blocknum_t blocknum;
-  void* retp = (void*)0;
+  void* retp = NULL;
   setLOCK();
   int32_t ret = pick_next_free_block(blocknum);
 
@@ -94,7 +100,7 @@ void freemem(void* p)
   address_to_free = (uint32_t)p;
   address_to_free = (address_to_free - pool_start_address);
 
-  if (address_to_free > kPoolSize || (address_to_free % kBlockSize) != 0)
+  if (address_to_free >= kPoolSize || (address_to_free % kBlockSize) != 0)
   {
     // address is invalid - do nothing
     return;
