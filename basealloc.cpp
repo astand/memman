@@ -81,7 +81,7 @@ void* getmem()
   if (ret >= 0)
   {
     busy_flags[blocknum] = 1;
-    return (void*)(pool_start_address + (blocknum * kBlockSize));
+    retp = (void*)(pool_start_address + (blocknum * kBlockSize));
   }
 
   setUNLOCK();
