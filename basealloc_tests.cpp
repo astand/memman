@@ -14,6 +14,7 @@ typedef enum
   InvlFree,
   FailedMix1,
   FailedMix2,
+  FailedMemAddress,
   MaxTestResultNum
 } testresult_t;
 
@@ -24,7 +25,8 @@ static const char* testmessages[MaxTestResultNum] =
   "Failed: memory allocated when it cannot be",
   "Failed: no allocation after invalid memory releasing",
   "Failed: reallocation returned 0 when must not",
-  "Failed: reallocation returned pointer when must 0"
+  "Failed: reallocation returned pointer when must 0",
+  "Failed: memory address is incorrect"
 };
 
 
@@ -147,6 +149,32 @@ testresult_t MixedAllocAndFree_Test()
 }
 
 
+testresult_t MemoryAddressInv_Test()
+{
+  void* p;
+  resetmem();
+  static uint32_t prevaddress;
+  uint32_t address;
+
+  for (int32_t i = 0; i < BLOCKS_COUNT; i++)
+  {
+    p = getmem();
+    address = (uint32_t)p;
+    freemem(p);
+
+    if (i > 0)
+    {
+      if (address != (prevaddress + ONE_BLOCK_SIZE))
+        return FailedMemAddress;
+    }
+
+    prevaddress = address;
+  }
+
+  return PASSED;
+}
+
+
 void make_tests()
 {
   std::cout << "Test 1 : " << testmessages[OutOfRequest_Test()] << '\n';
@@ -154,5 +182,6 @@ void make_tests()
   std::cout << "Test 3 : " << testmessages[WrongBlockFree_Test()] << '\n';
   std::cout << "Test 4 : " << testmessages[ZeroBlockFree_Test()] << '\n';
   std::cout << "Test 5 : " << testmessages[MixedAllocAndFree_Test()] << '\n';
+  std::cout << "Test 6 : " << testmessages[MemoryAddressInv_Test()] << '\n';
   resetmem();
 }

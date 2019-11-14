@@ -26,11 +26,11 @@ static volatile struct
   blocknum_t cells[kBlocksCount];
   uint32_t head = (kBlocksCount - 1);
   uint32_t tail = 0;
-  int32_t size = kBlocksCount;
+  int32_t size = -1;
 } freefifo;
 
 // array for marking busy / not busy
-static volatile uint8_t busy_flags[kBlocksCount];
+static volatile uint8_t busy_flags[kBlocksCount] = { 0 };
 
 static inline void shiftindex(volatile uint32_t& index)
 {
@@ -62,6 +62,10 @@ static volatile int32_t pick_next_free_block(blocknum_t& block_num_out)
     // this cast is unsafe only for uint32_t type when blocks
     block_num_out = (read_tail());
     return 0;
+  }
+  else if (freefifo.size == -1)
+  {
+    resetmem();
   }
 
   return -1;
@@ -121,6 +125,7 @@ void resetmem()
   for (blocknum_t i = 0; i < kBlocksCount; i++)
   {
     busy_flags[i] = 0;
+    freefifo.cells[i] = i;
   }
 }
 
