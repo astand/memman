@@ -2,14 +2,9 @@
 #include <iostream>
 #include "basealloc.h"
 #include "baseallocconfig.h"
-#include "reentrguard.h"
 
 namespace basealloc
 {
-
-// this typedef can be usefull to minimize memory consumption
-// when number of blocks is low (e.g. under 255 it can be uint8_t)
-typedef uint32_t blocknum_t;
 
 // for type clarification
 const uint32_t kBlocksCount = BLOCKS_COUNT;
@@ -20,118 +15,118 @@ const uint32_t kPoolSize = (kBlockSize* kBlocksCount);
 static volatile uint8_t memory_alloc_area[kPoolSize] = { 0 };
 static volatile uint32_t pool_start_address = (uint32_t)& memory_alloc_area;
 
-// structure to provide and handle O(1) performance for new memory allocation
-static volatile struct
+// stack for handling freeblock's numbers
+static struct
 {
   blocknum_t cells[kBlocksCount];
-  uint32_t head;
-  uint32_t tail;
-  int32_t size;
-} freefifo;
+  uint32_t shead;
+  uint32_t size;
+
+  bool is_empty() {
+    return (shead == 0);
+  }
+
+  bool is_full() {
+    return (shead == size);
+  }
+
+  uint32_t count() {
+    return shead;
+  }
+
+  blocknum_t peek() {
+    if (!is_empty()) {
+      return cells[shead - 1];
+    }
+  }
+
+  blocknum_t pop() {
+    if (!is_empty()) {
+      shead--;
+      return cells[shead];
+    }
+  }
+
+  void push(blocknum_t value) {
+    if (!is_full()) {
+      cells[shead] = value;
+      shead++;
+    }
+  }
+} freestack;
 
 // array for marking busy / not busy
 static volatile uint8_t busy_flags[kBlocksCount] = { 0 };
 
-static inline void shiftindex(volatile uint32_t& index)
+bool try_get_next_block(blocknum_t& bid)
 {
-  index = ((index + 1) % kBlocksCount);
-}
-
-static inline blocknum_t read_tail()
-{
-  blocknum_t ret = freefifo.cells[freefifo.tail];
-  shiftindex(freefifo.tail);
-  freefifo.size--;
-  return ret;
-}
-
-static inline void put_head(blocknum_t num)
-{
-  shiftindex(freefifo.head);
-  freefifo.cells[freefifo.head] = num;
-  freefifo.size++;
-}
-
-// if returns 0 the block_num_out has valid value
-static int32_t pick_next_free_block(blocknum_t& block_num_out)
-{
-  int32_t ret = 0;
   static bool mem_init = false;
+  bool ret = true;
 
   if (mem_init == false)
   {
-    resetmem();
+    test_reset_mem();
     mem_init = true;
-    block_num_out = read_tail();
+    bid = freestack.pop();
+    busy_flags[bid] = 1;
   }
-  else if (freefifo.size > 0 && freefifo.size <= kBlocksCount)
+  else if (!freestack.is_empty())
   {
     // this cast is unsafe only for uint32_t type when blocks
-    block_num_out = read_tail();
+    bid = freestack.pop();
+    busy_flags[bid] = 1;
   }
   else
   {
-    ret = -1;
+    ret = false;
   }
 
   return ret;
 }
 
-void* getmem()
+
+void* get_memp_on_block(blocknum_t block)
 {
-  blocknum_t blocknum;
-  void* retp = NULL;
-  setLOCK();
-  int32_t ret = pick_next_free_block(blocknum);
-
-  if (ret >= 0)
-  {
-    busy_flags[blocknum] = 1;
-    retp = (void*)(pool_start_address + (blocknum * kBlockSize));
-  }
-
-  setUNLOCK();
-  return retp;
+  return (void*)(pool_start_address + (block * kBlockSize));
 }
 
-void freemem(void* p)
-{
-  uint32_t address_to_free;
-  address_to_free = (uint32_t)p;
-  address_to_free = (address_to_free - pool_start_address);
 
-  if (address_to_free >= kPoolSize || (address_to_free % kBlockSize) != 0)
+// if the true is returned the bid has the valid block number to free
+bool try_get_block_for_addr(uint32_t mem, blocknum_t& bid)
+{
+  mem = (mem - pool_start_address);
+
+  if (mem >= kPoolSize || (mem % kBlockSize) != 0)
   {
     // address is invalid - do nothing
-    return;
+    return false;
   }
 
   // get block number
-  int32_t cell_id = address_to_free / kBlockSize;
-  setLOCK();
-
-  if (busy_flags[cell_id] == 1)
-  {
-    // non-free block goes to free state, put the number to freefifo
-    put_head(cell_id);
-    busy_flags[cell_id] = 0;
-  }
-
-  setUNLOCK();
-  return;
+  bid = static_cast<blocknum_t>(mem / kBlockSize);
+  return true;
 }
 
 
-void resetmem()
+void free_block(blocknum_t bid)
 {
-  freefifo.head = kBlocksCount - 1;
-  freefifo.tail = 0;
-  freefifo.size = kBlocksCount;
-
-  for (blocknum_t i = 0; i < kBlocksCount; i++)
+  if (bid < kBlocksCount)
   {
-    busy_flags[i] = 0;
-    freefifo.cells[i] = i;
+    freestack.push(bid);
+    busy_flags[bid] = 0;
+  }
+}
+
+
+void test_reset_mem()
+{
+  freestack.shead = 0;
+  freestack.size = kBlocksCount;
+
+  for (blocknum_t i = (kBlocksCount); i != 0; i--)
+  {
+    busy_flags[i - 1] = 0;
+    freestack.push(i - 1);
   }
 }
 

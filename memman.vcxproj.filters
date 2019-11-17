@@ -30,6 +30,9 @@
     <ClInclude Include="baseallocconfig.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="baseapi.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
@@ -42,6 +45,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="basealloc_tests.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="baseapi.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

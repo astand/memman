@@ -155,12 +155,14 @@
     <ClInclude Include="basealloc.h" />
     <ClInclude Include="baseallocconfig.h" />
     <ClInclude Include="basealloc_tests.h" />
+    <ClInclude Include="baseapi.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="reentrguard.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="basealloc.cpp" />
     <ClCompile Include="basealloc_tests.cpp" />
+    <ClCompile Include="baseapi.cpp" />
     <ClCompile Include="memman.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>

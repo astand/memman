@@ -1,5 +1,6 @@
 #include "pch.h"
 #include <iostream>
+#include "baseapi.h"
 #include "baseallocconfig.h"
 #include "basealloc.h"
 #include "basealloc_tests.h"
@@ -34,7 +35,7 @@ static const char* testmessages[MaxTestResultNum] =
 testresult_t OutOfRequest_Test()
 {
   void* p;
-  resetmem();
+  test_reset_mem();
 
   for (int32_t i = 0; i < (BLOCKS_COUNT); i++)
   {
@@ -59,7 +60,7 @@ testresult_t OutOfRequest_Test()
 testresult_t MultiBlockFree_Test()
 {
   void* p;
-  resetmem();
+  test_reset_mem();
   p = getmem();
   freemem(p);
   freemem(p);
@@ -76,7 +77,7 @@ testresult_t MultiBlockFree_Test()
 testresult_t WrongBlockFree_Test()
 {
   void* p;
-  resetmem();
+  test_reset_mem();
   p = getmem();
   freemem((void*)((uint32_t)p + 1));
   freemem((void*)((uint32_t)p + 2));
@@ -95,7 +96,7 @@ testresult_t WrongBlockFree_Test()
 testresult_t ZeroBlockFree_Test()
 {
   void* p;
-  resetmem();
+  test_reset_mem();
   p = getmem();
   freemem(p);
   freemem(NULL);
@@ -112,7 +113,7 @@ testresult_t ZeroBlockFree_Test()
 testresult_t MixedAllocAndFree_Test()
 {
   void* p;
-  resetmem();
+  test_reset_mem();
 
   for (int32_t i = 0; i < BLOCKS_COUNT; i++)
   {
@@ -152,7 +153,7 @@ testresult_t MixedAllocAndFree_Test()
 testresult_t MemoryAddressInv_Test()
 {
   void* p;
-  resetmem();
+  test_reset_mem();
   static uint32_t prevaddress;
   uint32_t address;
 
@@ -160,7 +161,6 @@ testresult_t MemoryAddressInv_Test()
   {
     p = getmem();
     address = (uint32_t)p;
-    freemem(p);
 
     if (i > 0)
     {
@@ -183,5 +183,5 @@ void make_tests()
   std::cout << "Test 4 : " << testmessages[ZeroBlockFree_Test()] << '\n';
   std::cout << "Test 5 : " << testmessages[MixedAllocAndFree_Test()] << '\n';
   std::cout << "Test 6 : " << testmessages[MemoryAddressInv_Test()] << '\n';
-  resetmem();
+  test_reset_mem();
 }

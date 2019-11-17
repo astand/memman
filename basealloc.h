@@ -6,17 +6,30 @@
 #define NULL ((void*)0)
 #endif
 
-// namespace for ability to provide a few versions of allocator
-// in one project (or library)
 namespace basealloc
 {
+// this typedef can be usefull to minimize memory consumption
+// when number of blocks is low (e.g. under 255 it can be uint8_t)
+typedef uint32_t blocknum_t;
 
-// return pointer to allocated block or 0 if allocation failed
-extern void* getmem();
-// frees memory under pointer
-extern void freemem(void* p);
+// return true if the new block of memory is releasing
+bool try_get_next_block(blocknum_t& bid);
+
+// returns pointer on the start of memory  of the block.
+// the @block param is not checked inside,
+// it must strongly used the result of
+// @try_get_next_block() function as the value
+void* get_memp_on_block(blocknum_t block);
+
+// checkk if address is valid and if so returns true and
+// appropriate block number
+bool try_get_block_for_addr(uint32_t mem, blocknum_t& bid);
+
+// frees block
+void free_block(blocknum_t bid);
+
 // for tests - resets the state of allocator to initial
-extern void resetmem();
+void test_reset_mem();
 
 }
 
